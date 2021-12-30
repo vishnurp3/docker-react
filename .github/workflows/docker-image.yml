@@ -9,7 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    
     - name: Build the Docker image and Run test
       run: |
         docker build -f Dockerfile.dev -t visbliss93/docker-react .
         docker run -e CI=true visbliss93/docker-react npm run test -- --coverage
+    
+    - name: Generate deployment package
+      run: zip -r deploy.zip . -x '*.git*'
+    
+    - name: Deploy to EB
+      uses: einaregilsson/beanstalk-deploy@v18
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_KEY }}
+        application_name: docker
+        environment_name: Docker-env
+        existing_bucket_name: elasticbeanstalk-ap-south-1-304799537690
+        region: ap-south-1
+        version_label: ${{ github.sha }}
+        deployment_package: deploy.zip
